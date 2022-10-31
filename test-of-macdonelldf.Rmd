@@ -1,0 +1,207 @@
+---
+title: "MacdonellDF"
+author: "H. Kemal İlter"
+date: "31.10.2022"
+output:
+  html_document:
+    css: styles.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# libraries
+library(tidyverse)
+library(ggplot2)
+library(mosaic)
+library(e1071)
+require(tikzdevice)
+theme_set(theme_classic())
+```
+
+## Temel İstatistik
+
+*Kullanılan veri kümesi*
+
+```{r}
+  veri <- read.csv('MacdonellDF.csv')
+  degisken_1 <- (veri$height)
+  degisken_2 <- (veri$finger)
+#  veri
+ summary(veri)
+```
+
+**Ortalama (Mean)**
+
+```{r veri}
+  mean(degisken_1)
+  mean(degisken_2)
+```
+
+**Medyan (Median)**
+
+```{r}
+  median(degisken_1)
+  median(degisken_2)
+```
+
+**Mod (Mode)**
+
+```{r echo=FALSE}
+# Create the function.
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+# Create the vector with numbers.
+v <- c(degisken_1)
+# Calculate the mode using the user function.
+mod <- getmode(v)
+print(mod)
+```
+
+**Yüzde değer (Percentile)**
+
+```{r}
+  quantile(degisken_1, c(.32, .57, .98))
+  quantile(degisken_2, c(.32, .57, .98))
+```
+
+**Çeyrek değer (Quartile)**
+
+```{r}
+  quantile(degisken_1)
+  quantile(degisken_2)
+```
+
+**Değişim aralığı (Range)**
+
+```{r}
+range(degisken_1)
+range(degisken_2)
+aralik_1 <- max(degisken_1) - min(degisken_1)
+print(aralik_1)
+aralik_2 <- max(degisken_2) - min(degisken_2)
+print(aralik_2)
+```
+
+**Çeyrekler arası değişim aralığı (Interquartile range)**
+
+```{r}
+IQR(degisken_1)
+IQR(degisken_2)
+```
+
+**Varyans (Variance)**
+
+```{r}
+  var(degisken_1)
+  var(degisken_2)
+```
+
+**Standart sapma (Standard deviation)**
+
+```{r echo=FALSE}
+sd(degisken_1)
+sd(degisken_2)
+```
+
+**Değişkenlik katsayısı (Coefficient of variation)**
+
+```{r}
+# Create the function.
+getdk <- function(d) {
+   k <- 100*(sd(d)/mean(d))
+}
+d_1 <- c(degisken_1)
+dk_1 <- getdk(d_1)
+print(dk_1)
+d_2 <- c(degisken_2)
+dk_2 <- getdk(d_2)
+print(dk_2)
+```
+
+**Çarpıklık (Skewness)**
+
+```{r}
+skewness(degisken_1)
+skewness(degisken_2)
+```
+
+**z Değeri (z-Value)**
+
+```{r}
+summary(zscore(degisken_1))
+```
+
+**z Değeri (z-Value)**
+
+```{r}
+summary(zscore(degisken_2))
+```
+
+**Frekans (Frequency)**
+
+```{r}
+hist(degisken_1,plot = FALSE)
+hist(degisken_1)
+```
+
+```{r}
+hist(degisken_2,plot = FALSE)
+hist(degisken_2)
+```
+
+**Stem-and-Leaf Plot**
+
+```{r}
+stem(degisken_1)
+stem(degisken_2)
+```
+
+**Plot**
+
+```{r}
+plot(degisken_1[1:3000],ylim=c(4,7))
+abline(h = c(mean(degisken_1),mean(degisken_1)+sd(degisken_1),mean(degisken_1)-sd(degisken_1),mean(degisken_1)+2*sd(degisken_1),mean(degisken_1)-2*sd(degisken_1)), col = c("red", "blue", "blue", "green", "green"))
+```
+
+```{r}
+plot(degisken_2[1:3000],ylim=c(9,14))
+abline(h = c(mean(degisken_2),mean(degisken_2)+sd(degisken_2),mean(degisken_2)-sd(degisken_2),mean(degisken_2)+2*sd(degisken_2),mean(degisken_2)-2*sd(degisken_2)), col = c("red", "blue", "blue", "green", "green"))
+```
+
+```{r}
+plot(degisken_2,degisken_1)
+```
+
+**Box plot**
+
+```{r}
+boxplot(degisken_1, horizontal=TRUE)
+boxplot(degisken_2, horizontal=TRUE)
+```
+
+**Kovaryans**
+
+```{r}
+cov(degisken_1,degisken_2)
+```
+
+**Korelasyon Katsayısı**
+
+```{r}
+cor(degisken_1,degisken_2)
+```
+
+```{r}
+# Creating the plot
+plot(degisken_2, degisken_1)
+
+# Regression line
+reg <- lm(degisken_1 ~ degisken_2)
+abline(reg, col="red")
+
+# Pearson correlation
+ text(paste("Korelasyon:", round(cor(degisken_2, degisken_1), 2)), x = 10, y = 6.2)
+
+```
