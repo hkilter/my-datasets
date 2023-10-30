@@ -1,14 +1,14 @@
 ---
 title: "Tanımlayıcı İstatistik"
-author: "H. Kemal İlter"
-date: "21.10.2021"
-output: 
+author: "Prof. Dr. H. Kemal İlter"
+date: "IZV 701"
+output:
   html_document:
     css: styles.css
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 # libraries
 library(tidyverse)
 library(ggplot2)
@@ -22,14 +22,14 @@ theme_set(theme_classic())
 
 *Kullanılan veri kümesi*
 ```{r}
-veri <- read.csv('dataset-5.csv')
-veri
+  veri <- read.csv('dataset-5.csv')
+  veri
 # summary(veri)
 ```
 
 **Ortalama (Mean)**
 ```{r veri}
-mean(veri$elma)
+  mean(veri$elma)
 ```
 
 **Medyan (Median)**
@@ -145,17 +145,6 @@ df <- data.frame(
 summary(df)
 ggplot(df, aes(x=agirlik)) + geom_histogram(binwidth=10)
 ```
-
-
-
-
-
-
-
-
-
-
-
 
 
 
