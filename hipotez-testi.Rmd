@@ -1,0 +1,224 @@
+---
+title: "Hipotez Testi"
+author: "H. Kemal İlter"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    css: styles.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# libraries
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+theme_set(theme_classic())
+```
+
+## Problem
+
+İstatistiksel hipotez testi, iddiaların lehine veya aleyhine kanıt sağlamak için verileri kullanır. Aşağıdak örnek üzerinde ayrıntıları göstermeye çalışacağız.
+
+Örneğin, çocuklar için eğitim yazılımları geliştiren bir şirkette çalıştığınızı varsayalım. Şirket, yeni yazılımın  satış fiyatını belirlemeye çalışıyor. Yönetim, deneyim ve pazar eğilimlerine dayanarak 50 TL'nin makul olduğunu düşünüyor. Veri bilimcisi olarak sizden biraz araştırma yapmanız isteniyor.
+
+Müşterilerin yazılım için ne kadar ödemeye istekli olduklarını kontrol etmek için bir anket yapmanız gerekecektir. Yönetim, müşterilerin daha fazla ödemeye istekli olduğuna dair önemli kanıtlar olmadıkça 50 TL fiyatı kullanmayı planlıyor. Amacınız, şirketin 50 TL olan fiyatı yeniden düşünmesi gerekip gerekmediğini belirlemek için anket verilerini kullanmaktır.
+
+Anket $n=30$ potansiyel müşteriye gönderilmiş ve örneklemdeki ortalama ödeme istekliliğinin $\bar{x}=55.7$ TL ve $s^2=64.8$ olduğunu göstermiştir.
+
+```{r echo=FALSE}
+n = 30
+xbar = 55.7
+s2 = 64.8
+```
+
+Peki, bu ne anlama geliyor? Bu aşamada durup insanların 50 TL'den fazla ödemeye istekli oldukları sonucuna varamayız çünkü eğer farklı bir müşteri grubuna sorsaydık, örnek ortalama değişebilirdi (ve belki de 50 TL'den düşük olabilirdi).
+
+Yaklaşımımız, karar vermek için hipotez testi yapmak olacak.
+
+### 1. Adım: Hipotez
+
+Hipotez testi, birbirini dışlayan iki hipotez belirtmemizi gerektirir; boş hipotez $H_0$ ve alternatif hipotez $H_1$. $H_0$'ı "etki yok" durumu olarak ve $H_1$'i göstermek istediğimiz durum olarak seçmeliyiz.
+
+Bu çalışmada, insanların ortalama olarak 50 TL'den *fazla* ödemeye istekli olup olmadığını araştırıyoruz, bu yüzden alternatif hipotez $\mu>50$ olacak.
+
+$$
+\begin{align*}
+H_0:&\ \mu\leq50\\
+H_1:&\ \mu>50
+\end{align*}
+$$
+
+### 2. Adım: Test ve anlamlılık düzeyi
+
+Hangi testin uygun olduğunu belirlemek için önce aşağıdaki soruları ele almalıyız.
+
+- Kaç parametremiz var? (bir = tek örneklem testi, iki = iki örneklem testi)
+- Popülasyon varyansını biliyor muyuz? (evet = $z$-testi, hayır = $t$-testi)
+
+Bizim durumumuzda, sadece bir parametremiz var, $\mu$ (popülasyon ortalaması) ve popülasyon varyansını bilmiyoruz, ama örneklem üzerinden bir tahminimiz var. Bu nedenle, $t$-testi kullanmalıyız.
+
+$$t_{df} = {\bar{X}-\mu\over S/\sqrt{n}}$$
+
+Son olarak, $\alpha=0.01$ (anlamlılık düzeyi, %99) seçeceğiz, böylece sadece %1 veya daha az şansla olabilecek sonuçlar için $H_0$'ı reddedeceğiz.
+
+### 3. Adım: Gözlemlenen test istatiğinin hesaplanması
+
+Tek örneklem $t$-testi kullandığımızdan, gözlemlenen test istatistiği:
+
+$$
+t_{obs} = \frac{\bar{x} - \mu_0}{s/\sqrt{n}} = \frac{55.7 - 50}{\sqrt{64.8}/\sqrt{30}} = 3.878
+$$
+
+```{r echo=TRUE}
+t_obs = (xbar-50)/(sqrt(s2/n))
+t_obs
+```
+
+olacaktır.
+
+Hesaplanan test istatistiği, boş hipoteze karşı bir "kanıt" ölçüsü sağlar. Özellikle, boş hipotez altında, test istatistiğinin bir $t_{df}=t_{n-1}=t_{29}$ dağılımı izlediğini biliyoruz. Bu dağılım (aşağıda çizilmiştir), boş hipotezin doğru olduğu durumdaki olayın kanıtlarının dağılımını temsil eder.
+
+Gözlemlediğimiz test istatistiği (kesik kırmızı çizgi), gözlemlenen olayın ($\bar{x}=55.7, s^2=64.8$), boş hipotez altında olası olmadığını gösteriyor.
+
+Sonraki adım, bu olasılığı daha resmi bir şekilde hesaplamak olacak.
+
+```{r echo=FALSE} 
+index = seq(-6,6,by=0.01)
+plot(index,dt(index,df=n-1),type="l",xlab="",ylab="yoğunluk")
+segments(t_obs,-1,t_obs,dnorm(t_obs),lwd=2,col="red")
+```
+
+### 4. Adım: p-değerinin hesaplanması
+
+p-değeri, boş hipotezin gerçekten doğru olduğu varsayıldığında, gözlemlenen örneklem kanıtları kadar veya daha fazla sonuç elde etme olasılığıdır. Test istatistiğinin, "örneklem kanıtı"nın bir ölçü olduğu durumda gözlemlenen test istatistiği büyüdükçe, boş hipoteze karşı daha fazla kanıt sağlar.
+
+$$
+\begin{align*}
+\text{p-değeri} 
+&= P(t_{df}>t_{obs}\ | \ H_0 \text{ doğru})\\
+&= P\left(t_{n-1}>{\bar{x}-\mu_0\over s/\sqrt{n}}\ \big|\ \mu\leq50\right)\\
+&= P\left(t_{29}>{55.7 - 50\over \sqrt{64.8}/\sqrt{30}}\right)\\
+&= P\left(t_{29}>3.878\right)\\
+&\approx 0.0003
+\end{align*}
+$$
+```{r echo=TRUE} 
+pt(t_obs,df=n-1,lower.tail=FALSE)
+```
+
+Bu değerin, gözlemlenen test istatistiğinin sağ tarafındaki bölgeye karşılık geldiğine dikkat edin. Bu olasılık çok küçük olduğu için, orijinal çizimde gölgeli alanı görmek zor. Bu nedenle, orijinalin yanına "yakınlaştırılmış" bir çizim oluşturabiliriz.
+
+```{r echo=FALSE}
+
+par(mfrow=c(1,2))
+index = seq(-6,6,by=0.01)
+plot(index,dt(index,df=n-1),type="l",xlab="",ylab="yoğunluk",main="Orijinal")
+polygon(c(index[index>t_obs],5),c(0,dt(index[index>t_obs],df=n-1)),col="grey",border=FALSE)
+segments(t_obs,-1,t_obs,dt(t_obs,df=n-1),lwd=2,col="red")
+
+index = seq(3,6,by=0.01)
+plot(index,dt(index,df=n-1),type="l",xlab="",ylab="yoğunluk",main="Yakınlaştırılmış")
+polygon(c(index[index>t_obs],5),c(0,dt(index[index>t_obs],df=n-1)),col="grey",border=FALSE)
+segments(t_obs,-1,t_obs,dt(t_obs,df=n-1),lwd=2,col="red")
+
+```
+
+### 5. Adım: İstatistiksel karar verme ve sonuçların yorumlanması
+
+p-değeri hesaplandığında "karar kuralı" şu şekilde olacaktır:
+
+\begin{align*}
+\text{p-değeri}\leq \alpha \text{ ise } H_0 \text{ reddedilir}\\
+\text{p-değeri}> \alpha \text{ ise } H_0 \text{ reddedilmez}\\
+\end{align*}
+
+$\alpha$, $H_0$'ı reddettiğimiz maksimum p-değeri olduğundan, **Tip I** hata yapma şansımızın *en fazla* $100\alpha$ olmasını sağlıyoruz. Diğer bir deyişle, p-değerinin büyük olduğunu bulsaydık, diyelim ki \%40, o zaman gerçekte olmadığı halde gerçek ortalamanın 50 TL'yi aştığına yanlışlıkla karar verme şansımız \%40 olurdu. Çoğu problem için, \%40'lık bir hata oranı tolere edilecek kadar küçük değildir. Sosyal bilimlerde, norm olarak $\alpha \in\{0.1, 0.05, 0.01\}$ seçeriz ki bu \%10, \%5 ve \%1'lik hata oranlarına karşılık gelir.
+
+Bu problem bağlamında, p-değerinin yaklaşık olarak \%0.03 olduğunu buluyoruz. Bu, eğer popülasyonun gerçek ortalaması 50 TL'den az ise, örneklem kanıtlarını ($\bar{x}=55.7, s^2=64.8$) ya da daha fazlasını görme şansımızın \%0.03 olduğu anlamına gelir. Bu çok küçük bir orandır -- aslında, tolere edebileceğimiz \%5'lik hata oranından çok daha küçük. Bu nedenle, **boş hipotezi reddetmeye** ve **popülasyondaki gerçek ortalamanın 50 TL'den fazla olduğu** sonucunun daha olası olduğu kararı verilecektir.
+
+**Sonuç**: $0.0003 \leq 0.01, H_0 \text{ reddedilir}$.
+
+Bu sonucu yönetime götürüp, fiyatı artırmayı düşünmeleri gerektiğini söyleyebiliriz.
+
+## Güven Aralığı
+
+Hipotez testleri ile güven aralıkları arasında yakın bir ilişki vardır. Hipotez testleri için karar kuralları:
+
+\begin{align*}
+\text{p-değeri}\leq \alpha \text{ ise } H_0 \text{ reddedilir}\\
+\text{p-değeri}> \alpha \text{ ise } H_0 \text{ reddedilmez}\\
+\end{align*}
+
+Bu durum görsel olarak da açıklanabilir. Diyelim ki $\alpha=0.05$ ile iki taraflı bir hipotez testi yapıyorsunuz ve bir test istatistiği olarak $z_{obs}=2.054$ ve buna karşılık gelen p-değeri olarak 0.04 hesaplıyorsunuz. Bu, test istatistiğinin dağılımının alt ve üst kuyruklarında toplamda 0.04'lük bir alana karşılık gelir.
+
+```{r echo=FALSE}
+zobs = 2.054
+index = seq(-6,6,by=0.01)
+plot(index,dnorm(index),type="l",xlab="",ylab="yoğunluk")
+polygon(c(index[index>zobs],5),c(0,dnorm(index[index>zobs])),col="grey",border=FALSE)
+polygon(c(-5,index[index< -zobs]),c(dnorm(index[index< -zobs]),0),col="grey",border=FALSE)
+segments(zobs,-1,zobs,dnorm(zobs),lwd=2,col="red")
+```
+
+Ayrıca, üst kuyrukta $\alpha/2=0.05/2=0.025$ alanına karşılık gelen x-ekseni değerini de hesaplayabiliriz.
+
+```{r}
+qnorm(0.025,lower.tail=FALSE)
+```
+
+```{r echo=FALSE}
+zalpha = qnorm(0.025,lower.tail=FALSE)
+index = seq(-6,6,by=0.01)
+plot(index,dnorm(index),type="l",xlab="",ylab="yoğunluk")
+polygon(c(index[index>zobs],5),c(0,dnorm(index[index>zobs])),col="grey",border=FALSE)
+polygon(c(-5,index[index< -zobs]),c(dnorm(index[index< -zobs]),0),col="grey",border=FALSE)
+segments(zobs,-1,zobs,dnorm(zobs),lwd=2,col=2)
+segments(zalpha,-1,zalpha,dnorm(zalpha),lwd=2,lty=3)
+```
+
+Şimdi, noktalı siyah çizgi $z_{\alpha/2}=1.96$ noktasında bulunuyor -- yani, üst kuyruk alanının $\alpha/2=0.025$'e eşit olduğu değer. Gölgeli alanımız bu çizginin sağ tarafında yer alıyor, dolayısıyla karar kuralımıza göre, boş hipotezi reddederdik.
+
+Ancak, $z_{\alpha/2}$ (noktalı siyah çizgi) kritik değerinin sağına düşen herhangi bir test istatistiği (katı kırmızı çizgi) için de boş hipotezi reddedeceğimizi düşünebilirsiniz.
+
+Bu nedenle, eşdeğer bir karar kuralı seti aşağıdaki gibi olacaktır:
+
+\begin{align*}
+\big|z_{obs}\big|\geq z_{\alpha/2} &\ \text{ise } H_0 \text{ reddedilir}\\
+\big|z_{obs}\big| < z_{\alpha/2} &\ \text{ ise } H_0 \text{ reddedilmez}\\
+\end{align*}
+
+Güven aralığı, hipotez testiyle reddedilmeyen parametre değerlerinin aralığıdır ve "kabul bölgesi" şu şekilde tanımlanmaktadır:
+
+\begin{align*}
+\big|z_{obs}\big|< z_{\alpha/2}
+&\implies \left|{\bar{x} - \mu_0 \over \sigma/\sqrt{n}}\right|<z_{\alpha/2}\\
+&\implies -z_{\alpha/2}<{\bar{x} - \mu_0 \over \sigma/\sqrt{n}}<z_{\alpha/2}\\
+&\implies -z_{\alpha/2} {\sigma \over \sqrt{n}} <\bar{x} - \mu_0 < z_{\alpha/2} {\sigma \over \sqrt{n}}\\
+&\implies -\bar{x}-z_{\alpha/2} {\sigma \over \sqrt{n}} < - \mu_0 < -\bar{x} + z_{\alpha/2} {\sigma \over \sqrt{n}}\\
+&\implies \bar{x}-z_{\alpha/2} {\sigma \over \sqrt{n}} < \mu_0 < \bar{x} + z_{\alpha/2} {\sigma \over \sqrt{n}}
+\end{align*}
+
+```{r echo=FALSE}
+# t.test(mydata, alternative, mu, conf.level)
+```
+
+## Problem
+
+R'daki EuStockMarkets veri seti, Almanya DAX (Ibis), İsviçre SMI, Fransa CAC ve İngiltere  FTSE olmak üzere dört büyük Avrupa borsa endeksinin günlük kapanış fiyatlarını içerir. Bu veri setini kullanarak, SMI ve CAC endekslerinin kapanış fiyatlarında farklılıklar olup olmadığını %5 anlamlılık düzeyinde ve ve eşit olmayan varyanslar varsayımıyla test edin.
+
+```{r}
+# verinin aktarılması
+data(EuStockMarkets)
+
+# SMI değişkeninin oluşturulması (EuStockMarkets, ikinci sütun)
+SMI = EuStockMarkets[,2]
+
+# CAC değişkeninin oluşturulması (EuStockMarkets, üçüncü sütun)
+CAC = EuStockMarkets[,3]
+
+# iki örneklem t-testi
+t.test(SMI, CAC, alternative="two.sided", mu=0, conf.level=0.95)
+```
+
+p-değeri, $\alpha=0.05$ değerinden küçük olduğu için, boş hipotez reddedebilir ve İsviçre SMI ile Fransız CAC hisse senedi endeksleri arasında kapanış fiyatlarında farklılıklar olduğu sonucuna varılabilir.
