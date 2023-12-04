@@ -1,0 +1,368 @@
+---
+title: "Veriye Bakmak"
+# subtitle: "Hipotez Testi"
+author: "Prof. Dr. H. Kemal İlter"
+# date: "`r Sys.Date()`"
+date: "IZV 701"
+output:
+  html_document:
+    css: styles.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# libraries
+library(tidyverse)
+# library(ggplot2)
+# library(mosaic)
+# library(e1071)
+# require(tikzdevice)
+theme_set(theme_classic())
+```
+
+```{r, echo=FALSE, out.width="50%", fig.cap="https://xkcd.com/2713", fig.align = "center"}
+knitr::include_graphics("../img/data_point_2x.png")
+```
+
+<!--### İçindekiler
+
+* Bulmak
+* Simüle etmek
+* Kullanışlı hale getirmek
+* Birleştirmek
+* Temizlemek
+* Görselleştirmek
+
+---
+-->
+
+## 1. Veriyi Bulmak
+
+### Dahili veri (built-in data)
+
+```{r echo=TRUE}
+# kütüphane (package)
+library(tidyverse)
+
+# veri setleri
+data()
+```
+
+Bir örnek:
+
+```{r echo=TRUE}
+# içe aktarmak
+data(starwars)
+
+# görüntülemek
+view(starwars)
+```
+
+```{r echo=TRUE}
+# film listesindeki ilk vektörü görüntülemek
+starwars$films[[1]]
+```
+
+### Yerel veri (local data)
+
+```{r echo=TRUE}
+# starbucks.csv dosyasını içe aktarmak
+coffee <- read_csv("starbucks.csv")
+
+# veriyi tablo olarak görmek
+view(coffee)
+```
+
+```{r echo=TRUE}
+# veri yapısını görüntülemek
+glimpse(coffee)
+
+# id değişkeni için veri türünü değiştirmek
+coffee$id <- as.integer(coffee$id)
+
+# id değişkeninin yapısını görüntülemek
+glimpse(coffee$id)
+```
+
+```{r echo=TRUE}
+# EPA verisi
+data(mpg)
+
+# veriyi tablo olarak görüntülemek
+view(mpg)
+
+# EPA verisini yerel bir CSV dosyasına aktarak
+write_csv(mpg,"epa-cars.csv")
+```
+
+### Online veri
+
+#### Hypertext markup language (HTML)
+
+```{r echo=TRUE, include=FALSE}
+# kütüphane (package)
+library(rvest)
+```
+
+```{r echo=TRUE}
+# tüm web sayfasını içe aktarmak
+tiktok <- read_html("https://en.wikipedia.org/wiki/List_of_most-followed_TikTok_accounts")
+
+# web sayfasından tablolar çıkarmak
+tiktok_tabs <- html_nodes(tiktok,"table")
+
+# listeden ilk tabloyu çıkarmak
+tiktok_top50 <- html_table(tiktok_tabs[[1]])
+
+# en çok takip edilen Top 50'yi görüntülemek
+view(tiktok_top50)
+```
+
+#### JavaScript object notation (JSON)
+
+```{r echo=FALSE, include=FALSE}
+# kütüphane (package)
+library(httr)
+library(jsonlite)
+```
+
+Application programming interface (API)
+
+```{r echo=TRUE}
+# verinin API'den istenmesi
+crash <- GET("https://data.cityofchicago.org/resource/85ca-t3if.json")
+
+# API'den gelen yanıtın yazdırılması
+crash2 <- content(crash,"text")
+
+# json'un veri çerçevesine (data frame) dönüştürülmesi
+crash3 <- fromJSON(crash2)
+```
+
+```{r echo=TRUE}
+# API istek durumunun (API request status) kontrolü
+http_status(crash)
+
+# Yanıtın türünün kontrol edilmesi
+http_type(crash)
+```
+
+```{r echo=TRUE}
+# verinin görüntülenmesi
+view(crash3)
+```
+
+### Veritabanları
+
+Veritabanları için SQL kullanılmaktadır. (örnek kütüphane: RPostgres)
+
+## 2. Veriyi Simüle Etmek
+
+### Binom Dağılımı (Binomial Distribution)
+
+```{r}
+# kütüphane (package)
+library(tidyverse)
+
+# bir adet para atışının simülasyonu
+# 0-yazı, 1-tura
+set.seed(303)
+rbinom(n=1,size=1,prob=0.5)
+
+# bir adet paranın 500 defa atılmasının simülasyonu
+set.seed(303) # bunu istediğiniz bir sayıyla değiştirebilirsiniz
+coin <- data.frame(flip=rbinom(n=500,size=1,prob=0.5))
+
+# para atışının yapısının gösterilmesi
+glimpse(coin)
+
+# üç adet paranın 500 defa atılmasının simülasyonu
+set.seed(303)
+three_coins <- data.frame(flips=rbinom(n=500,size=3,prob=0.5))
+
+# para atışının yapısının gösterilmesi
+glimpse(three_coins)
+```
+
+### Kesikli Düzgün Dağılım (Discrete Uniform Distribution)
+
+```{r}
+# bir adet zar atışının simülasyonu
+set.seed(303)
+rdunif(n=1,a=1,b=6)
+
+# iki adet zarın 500 defa atılmasının simülasyonu
+set.seed(303)
+dice <- data.frame(die1=rdunif(n=500,a=1,b=6),
+                   die2=rdunif(n=500,a=1,b=6))
+
+# zar atışının yapısının gösterilmesi
+glimpse(dice)
+```
+
+### Sürekli Düzgün Dağılım (Continuous Uniform Distribution)
+
+```{r}
+# 100 rastsal sayının simülasyonu
+set.seed(303)
+rando <- data.frame(num=runif(n=100,min=0,max=1))
+
+# rastsal sayıların yapısının gösterilmesi
+glimpse(rando)
+```
+
+### Normal Dağılım (Normal Distribution)
+
+```{r}
+# 1000 kadının boy uzunluklarının simülasyonu
+set.seed(303)
+females <- data.frame(height=rnorm(n=1000,mean=64.8,sd=2.8))
+
+# boy uzunluklarının yapısının gösterilmesi
+glimpse(females)
+```
+
+## 3. Veriyi Kullanışlı Hale Getirmek
+
+```{r}
+# kütüphane (package)
+library(tidyverse)
+
+# NYC uçuşlarına ilişkin kütüphane
+library(nycflights13)
+
+# uçuşlara ilişkin tablonun içe aktarımı ve görüntülenmesi
+data(flights)
+view(flights)
+```
+
+### Satırların Organizasyonu
+
+```{r}
+# uçuş tablosunun ilk 5 satırının gösterilmesi
+head(flights, n=5)
+
+# uçuş tablosunun filtrelenmesi
+flights_filter <- flights %>%
+  filter(carrier=="UA",
+         origin %in% c("JFK","LGA"),
+         distance>1000,
+         month!=1)
+
+# filtrelenmiş tabloda satırların sayılması
+nrow(flights_filter)
+
+# bie değer içermeyen satırların dışarıda bırakılması
+flights_omit <- flights_filter %>%
+  na.omit()
+
+# son tablodaki satır sayısı
+nrow(flights_omit)
+
+# filtrelenmiş tablonun sıralanması
+flights_sort <- flights_omit %>%
+  arrange(origin, 
+          desc(air_time))
+
+# uçuş tablosunun filtrelenmesi, temizlenmesi ve sıralanması
+flights_all <- flights %>%
+  filter(carrier=="UA",
+         origin %in% c("JFK","LGA"),
+         distance>1000,
+         month!=1) %>%
+  na.omit() %>%
+  arrange(origin, 
+          desc(air_time))
+```
+
+### Sütunların Organizasyonu
+
+```{r}
+# dçrt değişkenin seçilmesi
+flights_select <- flights_all %>%
+  select(origin,carrier,flight,air_time)
+
+# zaman değişkeninin isminin değiştirilmesi
+flights_rename <- flights_select %>%
+  rename(flight_num=flight,
+         flight_time=air_time)
+
+# üç yeni değişken yaratılması
+flights_mutate <- flights_rename %>%
+  mutate(flight_hrs = flight_time/60,
+         flight_lng = flight_hrs>=6,
+         flight_cat = ifelse(flight_hrs<3,"short",
+                             ifelse(flight_hrs<6,"medium",
+                                    "long")))
+
+# yukarı belirtilen işlemlerin tümü
+flights_transmute <- flights %>%
+  filter(carrier=="UA",
+         origin %in% c("JFK","LGA"),
+         distance>1000,
+         month!=1) %>%
+  na.omit() %>%
+  arrange(origin, 
+          desc(air_time)) %>%
+  transmute(origin,
+            carrier,
+            flight_num=flight,
+            flight_time=air_time,
+            flight_hrs = flight_time/60,
+            flight_lng = flight_hrs>=6,
+            flight_cat = ifelse(flight_hrs<3,"short",
+                                ifelse(flight_hrs<6,"medium",
+                                       "long")))
+```
+
+### Sütunların Özetlenmesi
+
+```{r}
+# uçuş saati değişkeninin özetlenmesi
+flights_transmute %>%
+  summarize(count=n(),
+            total=sum(flight_hrs),
+            average=mean(flight_hrs))
+
+# uçuş saati değişkeninin kategorilere göre özetlenmesi
+flights_transmute %>%
+  group_by(flight_cat) %>%
+  summarize(count=n(),
+            total=sum(flight_hrs),
+            average=mean(flight_hrs)) %>%
+  ungroup()
+
+# uçuş saati değişkeninin çıkış yeri ve varış yerine göre özetlenmesi
+flights_dest <- flights %>%
+  select(origin,dest,air_time) %>%
+  na.omit() %>%
+  group_by(origin,dest) %>%
+  summarize(count=n(),
+            total=sum(air_time),
+            average=mean(air_time)) %>%
+  ungroup() %>%
+  arrange(origin,desc(count))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
