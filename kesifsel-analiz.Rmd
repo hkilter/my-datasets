@@ -1,0 +1,494 @@
+---
+title: "Keşifsel Analiz"
+# subtitle: "Hipotez Testi"
+author: "Prof. Dr. H. Kemal İlter"
+# date: "`r Sys.Date()`"
+date: "IZV 701"
+output:
+  html_document:
+    css: styles.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# libraries
+library(tidyverse)
+# library(ggplot2)
+# library(mosaic)
+# library(e1071)
+# require(tikzdevice)
+theme_set(theme_classic())
+```
+
+```{r, echo=FALSE, out.width="50%", fig.cap="Amundsen, 1911. DALL-E 3", fig.align = "center"}
+knitr::include_graphics("../img/explorer.jpeg")
+```
+
+<!--### İçindekiler
+
+* Bulmak
+* Simüle etmek
+* Kullanışlı hale getirmek
+* Birleştirmek
+* Temizlemek
+* Görselleştirmek
+
+---
+-->
+
+## 1. Kategorik Değişkenler
+
+### Soru
+
+Chicago Üniversitesi'nde bulunan Ulusal Araştırma Görüş Merkezi (NORC), 1972'den bu yana Genel Sosyal Anketi (GSS) yürütmektedir. Anketin amacı, toplumsal değişimi izlemek ve Amerikan toplumunun artan karmaşıklığını incelemektir. Kişisel tanımlayıcılar arasında yaş, ırk, cinsiyet, medeni durum, gelir, eğitim, siyasi parti ve dini bağlantı gibi özellikler bulunmaktadır. **2000 ile 2014 yılları arasında GSS'ye yanıt verenler arasında medeni durum ve gelir dağılımı nasıldı?**
+
+```{r}
+#load tidyverse library
+library(tidyverse)
+```
+
+### Veri
+
+```{r}
+#import GSS data
+data(gss_cat)
+
+#review data structure
+str(gss_cat)
+```
+
+```{r}
+#select two columns and omit rows with missing data
+gss_cat2 <- gss_cat %>%
+  select(marital,rincome) %>%
+  na.omit()
+
+#show levels of marital status
+levels(gss_cat2$marital)
+
+#show levels of income
+levels(gss_cat2$rincome)
+```
+
+```{r}
+#combine and rename income levels
+gss_cat3 <- gss_cat2 %>%
+  mutate(rincome2=fct_collapse(rincome,
+                   missing=c("No answer","Don't know","Refused","Not applicable"),
+                   under_5=c("Lt $1000","$1000 to 2999","$3000 to 3999","$4000 to 4999"),
+                   from_5to10=c("$5000 to 5999","$6000 to 6999","$7000 to 7999","$8000 to 9999"),
+                   from_10to15="$10000 - 14999",
+                   from_15to20="$15000 - 19999",
+                   from_20to25="$20000 - 24999",
+                   over_25="$25000 or more")) %>%
+  select(-rincome)
+
+#show new levels of income
+levels(gss_cat3$rincome2)
+```
+
+```{r}
+#reorder income levels
+gss_cat4 <- gss_cat3 %>%
+  mutate(rincome2=fct_relevel(rincome2,
+                   c("missing","under_5","from_5to10","from_10to15","from_15to20",
+                     "from_20to25","over_25")))
+
+#show new categories of income
+levels(gss_cat4$rincome2)
+```
+
+### Analiz 
+
+```{r}
+#summarize variables
+summary(gss_cat4)
+```
+
+```{r}
+#compute income level percentages
+gss_cat4 %>%
+  group_by(rincome2) %>%
+  summarize(count=n()) %>%
+  mutate(prop=count/sum(count)) %>%
+  ungroup()
+```
+
+```{r}
+#plot basic bar chart of marital status
+plot(gss_cat4$marital)
+```
+
+```{r}
+#plot ggplot2 bar chart of marital status
+ggplot(data=gss_cat4,aes(x=marital)) +
+  geom_bar(color="black",fill="sky blue") +
+  labs(title="General Social Survey (2000-2014)",
+       x="Marital Status",
+       y="Count of Respondents",
+       caption="Source: University of Chicago (NORC)") +
+  theme_bw()
+```
+
+```{r}
+#plot ggplot2 bar chart of income
+ggplot(data=gss_cat4,aes(x=rincome2)) +
+  geom_bar(aes(y=after_stat(prop),group=1),
+           color="black",fill="sky blue") +
+  labs(title="General Social Survey (2000-2014)",
+       x="Reported Income ($K)",
+       y="Proportion of Respondents",
+       caption="Source: University of Chicago (NORC)") +
+  theme_bw()
+```
+
+### Değerlendirme
+
+```{r}
+#plot descending bar chart of marital status
+ggplot(data=gss_cat4,aes(x=fct_infreq(marital))) +
+  geom_bar(color="black",fill="sky blue") +
+  labs(title="General Social Survey (2000-2014)",
+       x="Marital Status",
+       y="Count of Respondents",
+       caption="Source: University of Chicago (NORC)") +
+  theme_bw()
+```
+
+```{r}
+#plot misleading bar chart of income
+ggplot(data=gss_cat4,aes(x=rincome2)) +
+  geom_bar(aes(y=after_stat(prop),group=1),
+           color="black",fill="sky blue") +
+  labs(title="General Social Survey (2000-2014)",
+       x="Reported Income ($K)",
+       y="Proportion of Respondents",
+       caption="Source: University of Chicago (NORC)") +
+  theme_bw() +
+  coord_cartesian(ylim = c(0.01,0.99))
+```
+
+### Yanıt
+
+Anket yanıtlarında medeni durum ve gelir seviyesini nasıl tanımlamalıyız? 3.4 Şekline bakıldığında, ankete yanıt veren insanların büyük çoğunluğunun evli olduğunu görüyoruz. Evli olmayanların çoğu hiç evlenmemiş ya da boşanmış durumda. Ayrı yaşayan veya dul olan yanıtlayanların sayısı nispeten azdır. 3.3 Şekline göre, yaklaşık %40'lık bir kesim gelir bildirmemişken, yaklaşık %35'lik bir kesim yılda 25 bin dolardan fazla gelir bildirmiştir. Geri kalan %25'lik kesim, 0 ila 25 bin dolar arasındaki beş gelir seviyesine oldukça eşit bir şekilde dağılmıştır.
+
+## 2. Çaprazlık Tablosu (Contingency Table)
+
+### Soru
+
+GSS verilerini kullanarak, daha önce Amerikalılar arasında medeni durumun bireysel dağılımını inceledik. Ancak, medeni durum ve diğer demografik faktörler arasındaki ilişki de ilgimizi çekebilir. **2000 ile 2014 yılları arasında GSS'ye yanıt verenler arasında medeni durum ile siyasi parti arasında bir ilişki var mı?**
+
+### Veri
+
+```{r}
+#import GSS data
+data(gss_cat)
+
+#review marital levels
+levels(gss_cat$marital)
+```
+
+```{r}
+#review political levels
+levels(gss_cat$partyid)
+```
+
+```{r}
+#wrangle GSS data
+gss_cat2 <- gss_cat %>%
+  select(marital,partyid) %>%
+  na.omit() %>%
+  filter(marital != "No answer",
+         !partyid %in% c("No answer","Don't know","Other party")) %>%
+  transmute(marital=case_when(
+      marital=="Married" ~ "Now",
+      marital %in% c("Separated","Divorced","Widowed") ~ "Before",
+      marital=="Never married" ~ "Never"),
+    political=case_when(
+      partyid %in% c("Strong republican","Not str republican") ~ "Republican",
+      partyid %in% c("Ind,near rep","Independent","Ind,near dem") ~ "Independent",
+      partyid %in% c("Strong democrat","Not str democrat") ~ "Democrat")) %>%
+  mutate(marital=as.factor(marital),
+         political=as.factor(political))
+
+#summarize data frame
+summary(gss_cat2)
+```
+
+### Analiz
+
+```{r}
+#create contingency table
+table(gss_cat2$marital,
+      gss_cat2$political)
+```
+
+### Değerlendirme
+
+```{r}
+#create stacked bar chart
+ggplot(data=gss_cat2,aes(x=political,fill=marital)) +
+  geom_bar() +
+  labs(title="General Social Survey (2000-2014)",
+       x="Political Party",
+       y="Count",
+       fill="Marital Status",
+       caption="Source: University of Chicago (NORC)") +
+  theme_bw()
+```
+
+```{r}
+#create standardized stacked bar chart
+ggplot(data=gss_cat2,aes(x=political,fill=marital)) +
+  geom_bar(position="fill") +
+  labs(title="General Social Survey (2000-2014)",
+       x="Political Party",
+       y="Proportion",
+       fill="Marital Status",
+       caption="Source: University of Chicago (NORC)") +
+  theme_bw()
+```
+
+```{r}
+#create standardized stacked bar chart
+ggplot(data=gss_cat2,aes(x=marital,fill=political)) +
+  geom_bar(position="fill") +
+  labs(title="General Social Survey (2000-2014)",
+       x="Marital Status",
+       y="Proportion",
+       fill="Political Party",
+       caption="Source: University of Chicago (NORC)") +
+  theme_bw()
+```
+
+### Yanıt
+
+2000 ile 2014 yılları arasında GSS'ye yanıt verenler arasında, medeni durum ile siyasi parti arasında bir ilişki olduğu görülüyor. Cumhuriyetçiler arasında şu anda evli olanların oranı, diğer iki partiden daha yüksek. Öte yandan, medeni durumun dağılımı Bağımsızlar ve Demokratlar için yaklaşık olarak aynı görünüyor. Ters perspektiften bakıldığında, şu anda evli olanlar, evli olmayanlara (veya hiç olmamış olanlara) göre daha sık Cumhuriyetçi görünüyor. Her iki şekilde de bakıldığında, bu iki faktör ilişkilidir.
+
+Cevabımız, kapsam 2000 ile 2014 yılları arasında sınırlı kaldığı sürece, orijinal soruyla iyi bir uyum içindedir. Ancak, siyasi iklimdeki, sosyal normlardaki ve ekonomik faktörlerdeki değişiklikler, analizimizin sonuçlarını değiştirebilir. Sonuç olarak, tavsiyemiz büyük ölçüde değişebilir. Güncel bir politik kampanyanın yöneticisi için, en güncel rehberliğe erişim kritik öneme sahiptir. Aynı anket sorularına modern yanıtlar sağlandığında, analizimizi kolayca tekrarlayabilir ve yeni içgörüler sunabiliriz.
+
+## 3. Metin Madenciliği
+
+```{r}
+#load tidyverse and tidytext libraries
+library(tidyverse)
+library(tidytext)
+```
+
+### Soru
+
+Bu vaka çalışmasında, Lewis Carroll (Carroll 1865) tarafından yazılan klasik roman Alice Harikalar Diyarında'yı inceliyoruz. Carroll'ın gerçek adı Charles Lutwidge Dodgson'dı ve Oxford Üniversitesi'nde matematikçi olarak görev yapmanın yanı sıra yazar ve şairdi. Çalışmalarını özellikle geometri, doğrusal cebir ve matematiksel mantık alanlarında yürüttü. Ancak, birçok animasyon ve canlı aksiyon filmine ilham veren bu kitabın yazarı olarak en çok tanınır. **Alice Harikalar Diyarında adlı eserde kelime kullanımı ve duygu dağılımı nasıldır?**
+
+### Veri
+
+```{r}
+#import text file
+alice <- read_delim("alice.txt",delim=" ",col_names=FALSE)
+
+#display text structure
+glimpse(alice)
+```
+
+```{r}
+#clean text file
+alice2 <- alice %>%
+  unite("text",X1:X2,sep=" ",na.rm=TRUE) %>%
+  mutate(text=str_squish(text)) %>%
+  filter(!str_detect(text,"\\*")) %>%
+  transmute(line=1:2468,text)
+
+#display structure of clean data
+glimpse(alice2)
+```
+
+```{r}
+#tokenize text file by word
+alice3 <- alice2 %>%
+  unnest_tokens(output=word,input=text,token="words")
+
+#display tokenized structure
+glimpse(alice3)
+```
+
+### Analiz
+
+```{r}
+#count word frequency
+alice3 %>%
+  count(word,sort=TRUE) %>%
+  head(n=10)
+```
+
+```{r}
+#load stop words
+data(stop_words)
+
+#remove stop words
+alice4 <- alice3 %>%
+  anti_join(stop_words,by="word")
+  
+#count frequency without stop words
+alice4 %>%
+  count(word,sort=TRUE) %>%
+  head(n=10)
+```
+
+```{r}
+#plot bar chart of word frequency
+alice4 %>%
+  filter(word!="alice") %>%
+  count(word,sort=TRUE) %>%
+  head(n=15) %>%
+ggplot(aes(x=reorder(word,-n),y=n)) +
+  geom_bar(color="black",fill="sky blue",
+           stat="identity") +
+  labs(title="Alice in Wonderland",
+       subtitle="by Lewis Carroll",
+       x="Word",
+       y="Count",
+       caption="Source: Project Gutenberg") +
+  theme_bw()
+```
+
+```{r}
+#import sentiment data
+sentiments <- get_sentiments("bing")
+
+#join sentiments to words
+alice5 <- alice4 %>%
+  inner_join(sentiments,by="word")
+
+#summarize sentiments
+alice5 %>%
+  group_by(sentiment) %>%
+  summarize(count=n()) %>%
+  ungroup()
+```
+
+```{r}
+#compute cumulative sentiment
+alice6 <- alice5 %>%
+  mutate(tot_pos=cumsum(sentiment=="positive"),
+         tot_neg=cumsum(sentiment=="negative")) %>%
+  group_by(line) %>%
+  summarize(max_pos=max(tot_pos),
+            max_neg=max(tot_neg)) %>%
+  ungroup()
+
+#plot cumulative sentiment
+ggplot(data=alice6,aes(x=line)) +
+  geom_line(aes(y=max_pos),color="blue") +
+  geom_line(aes(y=max_neg),color="red") +
+  labs(title="Alice in Wonderland",
+       subtitle="by Lewis Carroll",
+       x="Line Number in Text",
+       y="Cumulative Words",
+       caption="Source: Project Gutenberg") +
+  annotate(geom="text",x=2000,y=675,label="Negative",color="red") +
+  annotate(geom="text",x=2000,y=350,label="Positive",color="blue") +
+  theme_bw()
+```
+
+### Değerlendirme
+
+```{r warning = FALSE}
+#load wordcloud library
+library(wordcloud)
+
+#create wordcloud of frequencies
+alice4 %>%
+  filter(word!="alice") %>%
+  count(word,sort=TRUE) %>%
+  with(wordcloud(words=word,freq=n,
+          max.words=100,random.order=FALSE))
+```
+
+```{r}
+#Top 5 negative words
+alice5 %>%
+  filter(sentiment=="negative") %>%
+  group_by(word) %>%
+  summarize(count=n()) %>%
+  ungroup() %>%
+  arrange(desc(count)) %>%
+  head(n=5)
+```
+
+### Değerlendirme
+
+Alice hikayesindeki en yaygın olumsuz kelime açık ara ile 'mock' (alay etmek) kelimesidir. Bu kelime, yerleşik 'bing' sözlüğü tarafından olumsuz duygu olarak atfedilmiştir. Birini alay etmek, onunla kinayeli bir şekilde dalga geçmek anlamına gelir. Sahte veya gerçek dışı olan bir nesne için 'mock' (sahte) kelimesi kullanılır. Dolayısıyla, olumsuz duygu atfı mantıklıdır. Ancak, bir alan uzmanı hızla, Alice hikayesindeki bir karakterin Mock Turtle (Sahte Kaplumbağa) olduğunu belirtecektir. 'mock' ve 'turtle' (kaplumbağa) kelimelerinin 3.9 Şekilde yan yana görünmesi bir tesadüf değildir. 'Mock' kelimesi yalnızca Mock Turtle'a atıfta bulunulduğunda kullanılır. Bu bağlamda olumsuz olarak değerlendirilmeli midir? Bu soruya cevap vermek için alan uzmanlarıyla işbirliği gerekebilir.
+
+Mock Turtle örneğinin temel noktası bağlamın önemidir. Analizimiz, bireysel kelimelerin ötesine geçip, duyguyu doğru bir şekilde atamak için diğer kelimeler ve ifadelerle yakınlığını göz önünde bulundurmalıdır. Bununla birlikte, bireysel kelimeler bile bağlama bağlı olarak zıt duygular ifade edebilir. 'Bad' (kötü), 'sick' (hasta/kötü) ve 'wicked' (kötü/harika) gibi kelimeler bazı durumlarda olumsuz, diğerlerinde ise olumlu duygu ifade etmek için kullanılır. Bizim kullanımımıza sunulan çeşitli güçlü metin madenciliği araçları var, ancak dil karmaşık ve inceliklidir. Doğal dil işleme (NLP) alanı geniş olarak bu zorlukları çözmeye çalışır.
+
+### Yanıt
+
+Alice Harikalar Diyarında'daki anlamlı kelimelerin sıklığına dayanarak, baş karakter Alice üzerinde anlaşılabilir bir şekilde önemli bir odaklanma bulunmaktadır. Alice'in ötesinde, metin bir dizi ek karaktere atıfta bulunur. Bunlar (azalan sıklıkta) kraliçe, kral, kaplumbağa, grifon, şapka ustası, tavşan ve fareyi içerir. Kitapta görünen önemli temalar zaman, ses ve görme (bakıldı) gibi görünmektedir. Kitap ayrıca sıkça başa atıfta bulunuyor. Hikayeyi tanıyanlar için bu, kraliçenin idam takıntısı nedeniyledir!
+
+Duygu açısından, kitap baştan sona tutarlı bir şekilde daha olumsuzdan pozitife doğru ilerliyor. Bununla birlikte, aşırı olumsuz temanın tutarlı olduğundan emin olmak için duygu analizini başka sözlüklerle (sadece "bing" dışında) tekrar yapmalıyız. Ayrıca, analizi yalnızca pozitif ve negatiften öte duyguları tanımlayan daha ayrıntılı sözlüklerle genişletebiliriz. Diğer genişletmeler, daha güçlü NLP araçları kullanarak çok kelime ve ifade analizini içerebilir. Bu tür takip çalışmaları, “Mock Turtle” (Sahte Kaplumbağa) ve “Off with their heads” (Başlarından edin) gibi bitişik kelimeleri ortaya çıkararak kalan kafa karışıklığını çözebilir.
+
+
+
+
+
+
+
+
+
+
+<!--
+## 4. Sayısal Değişkenler
+
+## 5. Ayrık Değerler
+
+## 6. Mekansal Analiz
+
+## 7. Doğrusal Bağlantılar
+
+## 8. Lojistik Bağlantılar
+
+## 9. Zaman Serisi Analizi
+
+## 10. Kümeleme Analizi
+
+## 11. Boyut İndirgeme
+
+### Soru
+
+### Veri
+
+### Analiz
+
+### Değerlendirme
+
+### Yanıt
+
+-->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
