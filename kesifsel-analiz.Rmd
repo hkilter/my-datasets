@@ -24,18 +24,6 @@ theme_set(theme_classic())
 knitr::include_graphics("../img/explorer.jpeg")
 ```
 
-<!--### İçindekiler
-
-* Bulmak
-* Simüle etmek
-* Kullanışlı hale getirmek
-* Birleştirmek
-* Temizlemek
-* Görselleştirmek
-
----
--->
-
 ## 1. Kategorik Değişkenler
 
 ### Soru
@@ -426,26 +414,832 @@ Alice Harikalar Diyarında'daki anlamlı kelimelerin sıklığına dayanarak, ba
 
 Duygu açısından, kitap baştan sona tutarlı bir şekilde daha olumsuzdan pozitife doğru ilerliyor. Bununla birlikte, aşırı olumsuz temanın tutarlı olduğundan emin olmak için duygu analizini başka sözlüklerle (sadece "bing" dışında) tekrar yapmalıyız. Ayrıca, analizi yalnızca pozitif ve negatiften öte duyguları tanımlayan daha ayrıntılı sözlüklerle genişletebiliriz. Diğer genişletmeler, daha güçlü NLP araçları kullanarak çok kelime ve ifade analizini içerebilir. Bu tür takip çalışmaları, “Mock Turtle” (Sahte Kaplumbağa) ve “Off with their heads” (Başlarından edin) gibi bitişik kelimeleri ortaya çıkararak kalan kafa karışıklığını çözebilir.
 
-
-
-
-
-
-
-
-
-
-<!--
 ## 4. Sayısal Değişkenler
+
+### Soru
+
+Major League Baseball (MLB), 1871 yılından bu yana Amerika'da profesyonel beyzbol sporunu düzenlemektedir. Sonuç olarak, beyzbol, mevcut olan en eski spor verilerinden birini sağlar. Gerçekten de, spor analitik endüstrisi, büyük ölçüde Michael Lewis'in Moneyball (Lewis 2004) kitabında anlatılan olaylar nedeniyle popülerlik kazandı. Bu kitap daha sonra büyük bir sinema filmine uyarlandı. Bu tür analizlere kısa bir giriş yapmak gerekirse, şu soruyla karşılaştığımızı varsayalım: 2010 ve 2020 yılları arasında, major lig beyzbolcuları arasında fırsat ve verimlilik dağılımı nasıldı?
+
+### Veri
+
+```{r}
+#load Lahman library
+library(Lahman)
+
+#review available data sets
+data()
+```
+
+```{r}
+#import batting data
+data(Batting)
+
+#inspect structure
+glimpse(Batting)
+```
+
+```{r}
+#wrangle batting data
+Batting2 <- Batting %>%
+  filter(yearID>=2010,yearID<=2020) %>%
+  group_by(playerID,yearID) %>%
+  summarize(tAB=sum(AB),
+            tH=sum(H)) %>%
+  ungroup() %>%
+  filter(tAB>=80) %>%
+  mutate(BA=tH/tAB)
+```
+
+```{r}
+#check for impossible batting average
+sum(Batting2$BA>1)
+```
+
+### Analiz
+
+```{r}
+#summarize total at-bats
+Batting2 %>%
+  summarize(count=n(),
+            mean=mean(tAB),
+            stdev=sd(tAB))
+```
+
+```{r}
+#summarize batting average
+Batting2 %>%
+  summarize(count=n(),
+            mean=mean(BA),
+            stdev=sd(BA))
+```
+
+```{r}
+#plot basic histogram of at-bats
+hist(Batting2$tAB)
+```
+
+```{r}
+#plot ggplot2 histogram of at-bats
+ggplot(data=Batting2,aes(x=tAB)) +
+  geom_histogram(color="black",fill="sky blue") +
+  labs(title="Major League Baseball (2010-2020)",
+       x="Total At-Bats per Season",
+       y="Count of Players",
+       caption="Source: Sean Lahman (SABR)") +
+  theme_bw()
+```
+
+```{r}
+#determine bin number
+bins <- sqrt(nrow(Batting2))
+
+#determine range of at-bats
+range <- max(Batting2$tAB)-min(Batting2$tAB)
+
+#determine bin widths
+range/bins
+```
+
+```{r}
+#create tailored histogram of at-bats
+atbats <- ggplot(data=Batting2,aes(x=tAB)) +
+  geom_histogram(binwidth=10,boundary=80,closed="left",
+                 color="black",fill="sky blue") +
+  labs(title="Major League Baseball (2010-2020)",
+       x="Total At-Bats per Season",
+       y="Count of Players",
+       caption="Source: Sean Lahman (SABR)") +
+  theme_bw() +
+  scale_x_continuous(limits=c(80,700),breaks=seq(80,700,40)) +
+  scale_y_continuous(limits=c(0,150),breaks=seq(0,150,25))
+
+#display histogram
+atbats
+```
+
+```{r}
+#create tailored histogram of batting average
+batavg <- ggplot(data=Batting2,aes(x=BA)) +
+  geom_histogram(aes(y=0.005*..density..),
+                 binwidth=0.005,boundary=0,closed="left",
+                 color="black",fill="sky blue") +
+  labs(title="Major League Baseball (2010-2020)",
+       x="Batting Average per Season",
+       y="Proportion of Players",
+       caption="Source: Sean Lahman (SABR)") +
+  theme_bw() +
+  scale_x_continuous(limits=c(0.1,0.4),breaks=seq(0.1,0.4,0.05)) +
+  scale_y_continuous(limits=c(0,0.07),breaks=seq(0,0.07,0.01))
+
+#display histogram
+batavg
+```
+
+### Değerlendirme
+
+```{r}
+#display at-bats histogram with stats
+atbats +
+  geom_vline(xintercept=326,color="red",size=1) +
+  geom_vline(xintercept=c(158,494),color='red',size=1,linetype="dashed")
+```
+
+```{r}
+#display batting average histogram with stats
+batavg +
+  geom_vline(xintercept=0.25,color="red",size=1) +
+  geom_vline(xintercept=c(0.21,0.29),color="red",size=1,linetype="dashed")
+```
+
+### Yanıt
+
+MLB oyuncularının vuruş fırsatını ve etkinliğini nasıl tanımlamalıyız? Fırsat açısından bakıldığında, iki farklı vuruşçu grubu olduğu görünüyor. İlk grup oyuncular, ya sakatlık ya da kötü performans nedeniyle nispeten az sayıda vuruş fırsatına sahip. İkinci bir grup ise sağlıklı kalmayı başarmış ve/veya iyi performans göstererek birçok vuruş fırsatı yakalamış görünüyor. Bu grubun zirve frekansı, 162 maçlık bir sezon üzerinden yayılan yaklaşık 550 vuruş fırsatı etrafında toplanmış. Etkinlik açısından bakıldığında, ortalama vuruş başarısı yüzde 25'tir ve daha düşük veya daha yüksek değerler giderek daha az sıklıkta görülür. Nispeten az sayıda vurucu, sezonu yüzde 20'nin altında veya yüzde 30'un üzerinde bir etkinlikle tamamlar.
 
 ## 5. Ayrık Değerler
 
+### Soru
+
+Çocuk Sağlığı ve Gelişimi Araştırmaları (CHDS), 1959'dan beri sağlık ve hastalıkların nesiller arası nasıl geçtiğini araştırmaktadır. Araştırmacıları, yalnızca genetik yatkınlığa değil, aynı zamanda sosyal ve çevresel faktörlere de odaklanmaktadır. Uzun vadeli bir çalışmanın bir parçası olarak, CHDS, bekleyen ebeveynlerin demografik bilgilerini ve sigara içme alışkanlıklarını topladı. Bize şu soru sorulduğunu varsayalım: CHDS projesi kapsamında, hamilelik sırasında sigara içen ve içmeyen annelerin bebeklerinde herhangi aşırı veya beklenmedik doğum ağırlıkları oldu mu?
+
+### Veri
+
+```{r}
+#load library
+library(mosaicData)
+
+#import gestation data
+data(Gestation)
+
+#display structure of data
+glimpse(Gestation)
+```
+
+```{r}
+#check date max and min
+max(Gestation$date)
+min(Gestation$date)
+```
+
+```{r}
+#wrangle gestation data
+Gestation2 <- Gestation %>%
+  transmute(weight=wt/16,
+            smoke=as.factor(smoke)) %>%
+  na.omit()
+
+#display smoke levels
+levels(Gestation2$smoke)
+```
+
+### Analiz
+
+```{r}
+#summarize gestation data
+summary(Gestation2)
+```
+
+```{r}
+#compute 1st quartile
+quantile(Gestation2$weight,probs=0.25)
+```
+
+```{r}
+#compute 3rd quartile
+quantile(Gestation2$weight,probs=0.75)
+```
+
+```{r}
+#manually compute IQR
+8.1875-6.8125
+```
+
+```{r}
+#directly compute IQR
+IQR(Gestation2$weight)
+```
+
+```{r}
+#threshold for low outliers
+quantile(Gestation2$weight,probs=0.25)-1.5*IQR(Gestation2$weight)
+```
+
+```{r}
+#threshold for high outliers
+quantile(Gestation2$weight,probs=0.75)+1.5*IQR(Gestation2$weight)
+```
+
+```{r}
+#filter and count outliers
+Gestation2 %>%
+  filter(weight<4.75 | weight>10.25) %>%
+  nrow()
+```
+
+```{r}
+#display box plot of birth weight
+ggplot(data=Gestation2,aes(x=weight)) +
+  geom_boxplot(fill="sky blue") +
+  labs(title="Child Health and Development Studies (CHDS)",
+       subtitle="Live births between 1964-1965",
+       x="Birth Weight (pounds)",
+       caption="Source: Public Health Institute") +
+  scale_x_continuous(limits=c(3,12),breaks=seq(3,12,0.5)) +
+  theme_bw() +
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+```
+
+```{r}
+#display box plot of birth weight by smoking status
+ggplot(data=Gestation2,aes(x=weight,y=smoke)) +
+  geom_boxplot(fill="sky blue") +
+  labs(title="Child Health and Development Studies (CHDS)",
+       subtitle="Live births between 1964-1965",
+       x="Birth Weight (pounds)",
+       y="Mother's Smoking Status",
+       caption="Source: Public Health Institute") +
+  scale_x_continuous(limits=c(3,12),breaks=seq(3,12,0.5)) +
+  theme_bw()
+```
+
+### Değerlendirme
+
+```{r}
+#remove all outliers
+Gestation2_wo <- Gestation2 %>%
+  filter(weight>=4.75, weight<=10.25)
+
+#compute median for both data sets
+median(Gestation2$weight)
+```
+
+```{r}
+median(Gestation2_wo$weight)
+#compute mean for both data sets
+mean(Gestation2$weight)
+mean(Gestation2_wo$weight)
+```
+
+```{r}
+#compute IQR for both data sets
+IQR(Gestation2$weight)
+IQR(Gestation2_wo$weight)
+```
+
+```{r}
+#compute stdev for both data sets
+sd(Gestation2$weight)
+sd(Gestation2_wo$weight)
+```
+
+```{r}
+Gestation %>%
+  filter(wt/16 <4.5) %>%
+  transmute(gestation_months=gestation/30) %>%
+  na.omit() %>%
+  arrange(gestation_months)
+```
+
+### Yanıt
+
+Hamilelik sırasında sigara içen ve içmeyen annelerin bebeklerinde herhangi aşırı ya da beklenmedik doğum ağırlıkları var mıydı? Kısacası, bu sorunun cevabı evet. Sigara içme durumunu göz ardı edildiğinde, 31 doğum ağırlığı aykırı olarak belirlenmiştir. Doğum ağırlıklarının merkezi eğilimine kıyasla 4.75 poundun altındaki ve 10.25 poundun üstündeki değerler aşırıdır. Sigara içme durumu göz önünde bulundurulduğunda, hiç sigara içmemiş annelerin bebeklerinde doğum ağırlıkları daha tutarlıdır (daha az varyasyon). Sonuç olarak, yaklaşık 5.25 poundun altında ya da 10.00 poundun üzerinde olan bebekler aykırı olarak sınıflandırılmıştır. Hamilelik sırasında sigara içen annelerin bebeklerinin doğum ağırlıkları ortalama olarak daha düşüktür ama aynı zamanda daha tutarsızdır (daha fazla varyasyon). Bu nedenle, bu alt gruptaki az sayıda doğum ağırlığı aşırı olarak kabul edilir.
+
 ## 6. Mekansal Analiz
 
-## 7. Doğrusal Bağlantılar
+### Soru
 
-## 8. Lojistik Bağlantılar
+Amerika Birleşik Devletleri Nüfus Sayım Bürosu'nun (USCB) misyonu, “ülkenin insanları ve ekonomisi hakkında kaliteli veri sağlayan önde gelen kurum olarak hizmet vermek”tir. USCB web sitesi, Büro tarafından toplanan çeşitli verileri listeler, bunların bazıları Anayasa tarafından zorunlu kılınmıştır. İkamet eden nüfus bağlamında, aşağıdaki iki soru sorulduğunu varsayalım: Birleşik Devletler'in bitişik topraklarının nüfusu nasıl dağılmıştır? En yoğun nüfuslu eyaletin başkenti ile en az yoğun nüfuslu eyaletin başkenti arasındaki mesafe ne kadardır?
 
+### Veri
+
+```{r}
+#load tidyverse and maps libraries
+library(tidyverse)
+library(maps)
+```
+
+```{r}
+#import USA map data
+state_map <- map_data("state")
+
+#plot USA map
+ggplot(data=state_map,aes(x=long,y=lat,group=group)) +
+  geom_polygon(color="black",fill="white") +
+  labs(title="Lower 48 States of the USA",
+       x="Longitude",
+       y="Latitude",
+       caption="Source: maps package") +
+  theme_bw()
+```
+
+```{r}
+#load covidcast library
+library(covidcast)
+
+#import census data
+data(state_census)
+
+#display data structure
+glimpse(state_census)
+```
+
+```{r}
+#import State data
+data(state)
+
+#create land area data frame
+state_area <- data.frame(region=state.name,
+                         area=state.area)
+
+#display data structure
+glimpse(state_area)
+```
+
+```{r}
+#join and wrangle census and area data
+state_density <- state_census %>%
+  transmute(region=NAME,
+            pop=POPESTIMATE2019) %>%
+  inner_join(state_area,by="region") %>%
+  transmute(region,density=pop/area) %>%
+  filter(!region %in% c("Alaska","Hawaii"))
+
+#display data structure
+glimpse(state_density)
+```
+
+```{r}
+#change State name to lower case
+state_density <- state_density %>%
+  mutate(region=tolower(region))
+
+#join density table to map table
+state_popmap <- state_map %>%
+  left_join(state_density,by="region")
+```
+
+### Analiz
+
+```{r}
+#create choropleth map of density
+densmap <- ggplot() +
+  geom_polygon(data=state_popmap,
+               aes(x=long,y=lat,group=group,fill=density),
+               color="black") +
+  labs(title="Estimated Population Density of Contiguous US in 2019",
+       fill="Residents\nper\nSquare\nMile",
+       caption="Source: United States Census Bureau") +
+  theme_void()
+
+#display choropleth map
+densmap
+```
+
+```{r message=FALSE, warning=FALSE}
+#load viridis library
+library(viridis)
+```
+
+```{r warning=FALSE}
+#display opposing color choropleth
+densmap +
+scale_fill_viridis(option="C")
+```
+
+```{r}
+#isolate highest and lowest density
+state_density %>%
+  arrange(density) %>%
+  filter(row_number()==1 | row_number()== n())
+```
+
+```{r}
+#create haversine function
+haversine <- function(lat1,lon1,lat2,lon2){
+  
+  #convert to radians
+  lat1 <- lat1*pi/180
+  lat2 <- lat2*pi/180
+  
+  #convert differences to radians
+  difflat <- (lat2-lat1)*pi/180
+  difflon <- (lon2-lon1)*pi/180
+  
+  #compute subparts of formula
+  sub1 <- (sin(difflat/2))^2
+  sub2 <- (sin(difflon/2))^2
+  sub3 <- sqrt(sub1+cos(lat1)*cos(lat2)*sub2)
+  
+  #compute and return distance
+  dist <- 2*3958.8*asin(sub3)
+  return(dist)
+  
+}
+```
+
+```{r}
+#compute haversine distance
+haversine(41.16108,-104.80545,40.21705,-74.74294)
+```
+
+```{r}
+#compute haversine distance
+haversine(47.60801,-122.33517,35.22709,-80.84312)
+```
+
+```{r}
+#create capital data frame
+caps <- data.frame(city=c("Cheyenne","Trenton"),
+                   lat=c(41.16108,40.21705),
+                   long=c(-104.80545,-74.74294),
+                   grp=c(1,1))
+
+#display complementary choropleth
+densmap +
+scale_fill_viridis(option="C") +
+  labs(subtitle="Distance between Capitals of Most and Least Dense States") +
+  geom_point(data=caps,
+             aes(x=long,y=lat),
+             size=2,fill="red",shape=23) +
+  geom_line(data=caps,
+             aes(x=long,y=lat,group=grp),
+            size=1,color="red",linetype="dashed") +
+  geom_text(data=caps,
+            aes(x=long,y=lat,label=city),
+            nudge_x=-2,nudge_y=1,color="red") +
+  annotate(geom="text",x=-92,y=39,label="1,567 miles",color="red")
+```
+
+### Değerlendirme
+
+```{r}
+#isolate lowest 10 densities
+state_density %>%
+  arrange(density) %>%
+  head(n=10)
+```
+
+### Yanıt
+
+ABD'nin bitişik eyaletlerindeki nüfus, kuzeydoğuda ve doğu ile batı kıyı şeridinde daha yoğun bir şekilde dağılmıştır. Kuzeydoğu eyaletleri arasında, New Jersey mil kare başına 1.134 sakin ile en yoğun nüfuslu eyalettir. Ortabatı ve merkez ABD'nin nüfus yoğunlukları, kıyı bölgelerine göre çok daha düşüktür. En düşük yoğunluklu eyaletlerin çoğu, Wyoming, Montana ve New Mexico gibi Rocky Dağları koridoru boyunca yer alır. Wyoming, mil kare başına sadece 6 sakin ile en düşüktür.
+
+En yoğun nüfuslu başkent Trenton, New Jersey ile en az yoğun nüfuslu başkent Cheyenne, Wyoming arasındaki mesafe yaklaşık 1.567 mildir. Bu, belirli araştırma sorusuna cevap verirken, New Jersey ile karşılaştırıldığında benzer şekilde dramatik nüfus yoğunluğu azalmaları sunan Güney Dakota, Nebraska ve Kansas gibi daha yakın eyaletlerin de olduğu belirtilmelidir. Araştırmanın birincil amacı ABD'de daha az kalabalık bölgeleri keşfetmekse, bu daha yakın eyaletler yeterli olabilir.
+
+## 7. Doğrusal İlişki
+
+### Soru
+
+Palmer Station Uzun Süreli Ekolojik Araştırma (LTER) Programı, Antarktika'daki Palmer Takımadaları boyunca kutup deniz biyomunu inceler. Bu girişimlerden biri, yerel penguen popülasyonunun biyolojik özelliklerini incelemeyi içerir. Palmer pengueninin yüzgeç uzunluğu ile vücut kütlesi arasında bir ilişki var mı?
+
+[![Alt text](https://lauranavarroviz.files.wordpress.com/2020/08/penguinsbill_plot_final.png)](#)
+
+### Veri
+
+```{r}
+#load Palmer library
+library(palmerpenguins)
+
+#import penguin data
+data(penguins)
+
+#display structure of penguin data
+glimpse(penguins)
+```
+
+```{r}
+#wrangle penguins data
+penguins2 <- penguins %>%
+  select(flipper_length_mm,body_mass_g) %>%
+  na.omit()
+
+#summarize penguin data
+summary(penguins2)
+```
+
+### Analiz
+
+```{r}
+#create basic scatter plot
+plot(penguins2$flipper_length_mm,
+    penguins2$body_mass_g)
+```
+
+```{r}
+#create ggplot scatter plot
+scatter <- ggplot(data=penguins2,
+                  aes(x=flipper_length_mm,y=body_mass_g)) +
+  geom_point() +
+  labs(title="Palmer Archipelago (Antarctica)",
+       subtitle="Penguin Measurements",
+       x="Flipper Length (mm)",
+       y="Body Mass (g)",
+       caption="Source: Palmer Station LTER Program") +
+  theme_bw()
+
+#display scatter plot
+scatter
+```
+
+```{r}
+#compute Pearson correlation coefficient
+cor(penguins2$flipper_length_mm,
+    penguins2$body_mass_g,
+    method="pearson")
+```
+
+```{r}
+#display best fit line
+scatter +
+  geom_smooth(method="lm",formula=y~x,se=FALSE) +
+  geom_abline(slope=50,intercept=-4500,
+              color="red",linetype="dashed") +
+  geom_abline(slope=25,intercept=-1500,
+              color="red",linetype="dashed")
+```
+
+```{r}
+#build linear model
+linear_model <- lm(body_mass_g~flipper_length_mm,data=penguins2)
+
+#extract linear model coefficients
+coefficients(summary(linear_model))
+```
+
+### Değerlendirme
+
+```{r warning=FALSE}
+#display misleading best fit line
+ggplot(data=penguins,
+       aes(x=bill_depth_mm,y=body_mass_g)) +
+  geom_point() +
+  geom_smooth(method="lm",formula=y~x,se=FALSE) +
+  labs(title="Palmer Archipelago (Antarctica)",
+       subtitle="Penguin Measurements",
+       x="Bill Depth (mm)",
+       y="Body Mass (g)",
+       caption="Source: Palmer Station LTER Program") +
+  theme_bw()
+```
+
+```{r echo=TRUE, include=TRUE, message=FALSE, warning=FALSE}
+#display multiple best fit lines
+ggplot(data=penguins,
+       aes(x=bill_depth_mm,y=body_mass_g,color=species,group=species)) +
+  geom_point() +
+  geom_smooth(method="lm",formula=y~x,se=FALSE) +
+  labs(title="Palmer Archipelago (Antarctica)",
+       subtitle="Penguin Measurements",
+       x="Bill Depth (mm)",
+       y="Body Mass (g)",
+       color="Species",
+       caption="Source: Palmer Station LTER Program") +
+  theme_bw()
+```
+
+### Yanıt
+
+Palmer Takımadaları'nda 300'den fazla penguenin ölçümüne dayanarak, bir penguenin yüzgeç uzunluğu ile vücut kütlesi arasında güçlü, pozitif ve doğrusal bir ilişki olduğu görülmektedir. Özellikle, bir penguenin vücut kütlesinin, yüzgeç uzunluğundaki her bir milimetrelik artış için ortalama olarak yaklaşık 50 gram artması beklenmektedir. Bu ilişki tüm üç türde de tutarlıdır.
+
+## 8. Lojistik İlişki
+
+### Soru
+
+Murat Koklu ve arkadaşlarının yaptığı araştırma, dijital görüntülerle birlikte makine öğrenimi algoritmalarını kullanarak iki çeşit kabak çekirdeğini ayırt etmeyi amaçlamaktadır. Yazarlar, çekirdek tipini tahmin etmek için görüntülerden elde edilen çeşitli ölçümleri (örneğin, uzunluk, genişlik ve alan) uygulamaktadır. Sonuç olarak, modelleri, sadece ölçülen boyutlara dayanarak çekirdek tipini %87-89 doğrulukla ayırt edebilmektedir. Şöyle bir soru sorulduğunu varsayalım: Bir kabak çekirdeğinin uzunluğu ile türü arasında bir ilişki var mıdır?
+
+### Veri
+
+```{r}
+#import pumpkin seed data
+pumpkin <- read_csv("Pumpkin_Seeds_Dataset.csv")
+
+#display structure of data
+glimpse(pumpkin)
+```
+
+```{r}
+#wrangle pumpkin seed data
+pumpkin2 <- pumpkin %>%
+  transmute(Length=Major_Axis_Length,
+            Type=as.factor(Type)) %>%
+  na.omit()
+
+#summarize pumpkin seed data
+summary(pumpkin2)
+```
+
+### Analiz
+
+```{r}
+#summarize stats by type
+pumpkin2 %>%
+  group_by(Type) %>%
+  summarize(count=n(),
+            average=mean(Length),
+            stdev=sd(Length)) %>%
+  ungroup()
+```
+
+```{r}
+#display box plot of length by type
+ggplot(data=pumpkin2,aes(x=Length,y=reorder(Type,-Length))) +
+  geom_boxplot(color="black",fill="sky blue") +
+  labs(title="Pumpkin Seed Classification",
+       subtitle="(based on digital imagery)",
+       x="Major Axis Length (pixels)",
+       y="Seed Type",
+       caption="Source: Koklu et al. (2021)") +
+  scale_x_continuous(limits=c(300,700),breaks=seq(300,700,50)) +
+  theme_bw()
+```
+
+```{r warning=FALSE}
+#create scatter plot of length versus type
+bin_scatter <- ggplot(data=pumpkin2,aes(x=Length,y=ifelse(Type=="A",1,0))) +
+  geom_jitter(width=0,height=0.05,alpha=0.2) +
+  labs(title="Pumpkin Seed Classification",
+       subtitle="(based on digital imagery)",
+       x="Major Axis Length (pixels)",
+       y="Proportion that are Type A",
+       caption="Source: Koklu et al. (2021)") +
+  scale_x_continuous(limits=c(300,700),breaks=seq(300,700,50)) +
+  scale_y_continuous(limits=c(0,1),breaks=seq(0,1,0.1)) +
+  theme_bw()
+
+#display scatter plot
+bin_scatter
+```
+
+```{r warning=FALSE}
+#display line on scatter plot
+bin_scatter +
+  geom_smooth(method="lm",formula=y~x,se=FALSE)
+```
+
+```{r warning=FALSE}
+#display sigmoid curve on scatter plot
+bin_scatter +
+  geom_smooth(method="glm",formula=y~x,se=FALSE,
+              method.args=list(family="binomial"))
+```
+
+```{r}
+#build logistic model
+logistic_mod <- glm(Type=="A"~Length,data=pumpkin2,
+                    family="binomial")
+
+#extract logistic model coefficients
+coefficients(summary(logistic_mod))
+```
+
+```{r}
+#compute McFadden pseudo-R-squared
+1-(summary(logistic_mod)$deviance/
+   summary(logistic_mod)$null.deviance)
+```
+
+### Değerlendirme
+
+
+
+
+### Yanıt
+
+2.500 kabak çekirdeğini analiz ettikten sonra, bir kabak çekirdeğinin ana eksen uzunluğu ile türü arasında orta derecede, negatif, doğrusal olmayan bir ilişki buluyoruz. Özellikle, Tip B çekirdekleri genellikle Tip A çekirdeklerinden daha uzundur. Sonuç olarak, bir çekirdeğin Tip A olma olasılığı, çekirdeğin uzunluğu arttıkça azalmaktadır.
+
+## 9. Zaman Serisi Analizi
+
+### Soru
+
+Boston Atletizm Birliği (BAA), 1887 yılında kurulmuş olup, 1897 yılından bu yana prestijli Boston Maratonu'nu düzenlemektedir. Her yıl binlerce koşucu, dünyanın en eski yıllık maratonunun şampiyonu olmak için yarışan dünya çapında profesyonel atletler de dahil olmak üzere, 26.2 mil uzunluğundaki parkuru tamamlar. Etkinliğin tarihine ilişkin daha fazla bilgi burada bulunabilir. Boston Maratonu'nu koşma süresi için hangi tarihsel eğilimler mevcuttur?
+
+### Veri
+
+```{r include=FALSE, warning=FALSE}
+#load requisite libraries
+library(tidyverse)
+library(rvest)
+library(lubridate)
+```
+
+```{r}
+#import full html webpage
+boston <- read_html("https://www.baa.org/races/boston-marathon/results/champions")
+
+#extract tables from html webpage
+boston_tabs <- html_nodes(boston,"table")
+
+#isolate men's winning times
+boston_men <- html_table(boston_tabs[[1]])
+
+#display data structure
+glimpse(boston_men)
+```
+
+```{r}
+#correct year 2023
+boston_men$X1[1] <- 2023
+
+#wrangle Boston data
+boston_men2 <- boston_men %>%
+  transmute(Year=as.integer(X1),
+            Time=hms(X4))
+
+#display data structure
+glimpse(boston_men2)
+```
+
+```{r}
+#compute minute per mile pace
+boston_men3 <- boston_men2 %>%
+  mutate(Miles=ifelse(Year<1924,24.5,26.2),
+         Minutes=period_to_seconds(Time)/60,
+         Pace=Minutes/Miles) %>%
+  select(Year,Pace) %>%
+  arrange(Year)
+
+#display data structure
+glimpse(boston_men3)
+```
+
+### Analiz
+
+```{r}
+#display line graph
+ggplot(data=boston_men3,aes(x=Year,y=Pace)) +
+  geom_line(color="blue") +
+  labs(title="Boston Marathon Winning Pace",
+       subtitle="(no race in 2020)",
+       x="Year",
+       y="Winning Pace (min/mile)",
+       caption="Source: Boston Athletic Association") +
+  scale_x_continuous(limits=c(1897,2023),breaks=seq(1897,2023,14)) +
+  scale_y_continuous(limits=c(4.5,7.25),breaks=seq(4.5,7.25,0.25)) +
+  theme_bw()
+```
+
+```{r warning=FALSE}
+#create ggplot scatter plot
+ggplot(data=boston_men3,aes(x=lag(Pace,1),y=Pace)) +
+  geom_point() +
+  geom_smooth(method="lm",formula=y~x,se=FALSE) +
+  labs(title="Boston Marathon Winning Pace",
+       subtitle="(no race in 2020)",
+       x="First Lag of Winning Pace (min/mile)",
+       y="Winning Pace (min/mile)",
+       caption="Source: Boston Athletic Association") +
+  theme_bw()
+```
+
+```{r}
+#build lagged model
+lag_model <- lm(Pace~lag(Pace,1),data=boston_men3)
+
+#extract lagged model coefficients
+coefficients(summary(lag_model))
+```
+
+```{r warning=FALSE}
+#compute lagged model trend
+boston_men4 <- boston_men3 %>%
+  mutate(Trend=0.761626+0.8661051*lag(Pace,1))
+
+#display trend on line graph
+ggplot(data=boston_men4,aes(x=Year)) +
+  geom_line(aes(y=Pace),color="blue") +
+  geom_line(aes(y=Trend),color="red",linetype="dashed") +
+  labs(title="Boston Marathon Winning Pace",
+       subtitle="(blue=actual and red=predicted)",
+       x="Year",
+       y="Winning Pace (min/mile)",
+       caption="Source: Boston Athletic Association") +
+  scale_x_continuous(limits=c(1897,2023),breaks=seq(1897,2023,14)) +
+  scale_y_continuous(limits=c(4.5,7.25),breaks=seq(4.5,7.25,0.25)) +
+  theme_bw()
+```
+
+### Değerlendirme
+
+```{r}
+#display misleading line graph
+ggplot(data=boston_men3,aes(x=Year,y=Pace)) +
+  geom_line(color="blue") +
+  labs(title="Boston Marathon Winning Pace",
+       subtitle="(no race in 2020)",
+       x="Year",
+       y="Winning Pace (min/mile)",
+       caption="Source: Boston Athletic Association") +
+  scale_x_continuous(limits=c(1897,2023),breaks=seq(1897,2023,14)) +
+  scale_y_continuous(limits=c(0,60),breaks=seq(0,60,10)) +
+  theme_bw()
+```
+
+### Yanıt
+
+Boston Maratonu'nun 127 yıllık tarihinde, yarış kazananının ortalama koşu hızında belirgin bir azalma eğilimi görülmektedir. Sonuç olarak, yarış kazananlarının bitirme süreleri yıldan yıla düşmektedir. Bununla birlikte, dünyanın en iyi koşucularını çeken ödül parasının 1980'lerde mevcut hale gelmesinden sonra azalma hızı düzelmeye başlamıştır. O zamandan beri, bitirme süreleri insan performansının sınırlarına yaklaşmış gibi görünmekte ve büyük azalmalar çok daha az yaygın hale gelmiştir.
+
+Keşfedici analize üç potansiyel genişletme hemen akla gelmektedir. İlk olarak, iki bilinen kırılma noktası (yarış mesafesi ve ödül parası) için daha dikkatli bir işlem yapılması muhtemelen gereklidir. Yarıştaki bu sistematik değişiklikleri hesaba katarak, kırılmalar arasındaki eğilimler için daha doğru modeller keşfedebiliriz. İkincisi, keşfi analizi çıkarımsal bir analize genişletebiliriz. Ayrıntılı nedenleri bu metnin kapsamı dışında olmakla birlikte, birinci dereceden otoregresyonun eğim parametresinin mutlak değerde 1'den az olması önemlidir. Eğim için en iyi tahminimiz $\beta_1 = 0.866$'dır, ancak tahmin için hata payını sağlamadık. Temel eğilim etrafındaki doğal değişkenlik göz önüne alındığında, gerçek eğimin 1'e (veya daha büyük) eşit olması mümkündür. 4. Bölümde, tahminler için hata payını hesaplamayı ve istatistiksel anlamlılıklarını değerlendirmeyi öğreniriz. Son bir genişletme olarak, ek gecikmeler veya diğer açıklayıcı değişkenler içeren daha karmaşık bir tahmini model geliştirebiliriz. Birden fazla değişken içerdikleri için bu tür modellere basit (tek değişkenli) doğrusal regresyon modellerine kıyasla çoklu doğrusal regresyon modelleri denir.
+
+<!--
 ## 9. Zaman Serisi Analizi
 
 ## 10. Kümeleme Analizi
@@ -454,11 +1248,23 @@ Duygu açısından, kitap baştan sona tutarlı bir şekilde daha olumsuzdan poz
 
 ### Soru
 
+
+
+
 ### Veri
+
+
+
 
 ### Analiz
 
+
+
+
 ### Değerlendirme
+
+
+
 
 ### Yanıt
 
